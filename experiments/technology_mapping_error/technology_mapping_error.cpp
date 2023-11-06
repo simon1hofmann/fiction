@@ -3,6 +3,8 @@
 #include <fiction/algorithms/physical_design/orthogonal.hpp>  // scalable heuristic for physical design of FCN layouts
 #include <fiction/algorithms/properties/critical_path_length_and_throughput.hpp>  // critical path and throughput calculations
 #include <fiction/algorithms/verification/equivalence_checking.hpp>               // SAT-based equivalence checking
+#include <fiction/io/network_reader.hpp>                                          // read networks from files
+
 #include <fiction/technology/technology_mapping_library.hpp>  // pre-defined gate types for technology mapping
 #include <fiction/traits.hpp>                                 // traits for type-checking
 #include <fiction/types.hpp>                                  // pre-defined types suitable for the FCN domain
@@ -14,9 +16,8 @@
 #include <mockturtle/algorithms/mapper.hpp>                    // Technology mapping on the logic level
 #include <mockturtle/algorithms/node_resynthesis/xag_npn.hpp>  // NPN databases for cut rewriting of XAGs and AIGs
 #include <mockturtle/io/genlib_reader.hpp>                     // call-backs to read Genlib files into gate libraries
-#include <mockturtle/io/verilog_reader.hpp>                    // call-backs to read Verilog files into networks
-#include <mockturtle/networks/aig.hpp>                         // AND-inverter graphs
 #include <mockturtle/utils/tech_library.hpp>                   // technology library utils
+#include <mockturtle/io/write_dot.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -80,18 +81,15 @@ int main()  // NOLINT
     // stats for ortho
     fiction::orthogonal_physical_design_stats orthogonal_stats{};
 
-    static constexpr const uint64_t bench_select = fiction_experiments::c2670 | fiction_experiments::c5315 |
-                                                   fiction_experiments::c7552 | fiction_experiments::c6288;
+    static constexpr const uint64_t bench_select = fiction_experiments::mux21;
 
     for (const auto& benchmark : fiction_experiments::all_benchmarks(bench_select))
     {
         fmt::print("[i] processing {}\n", benchmark);
-        mockturtle::aig_network aig{};
-
-        const auto read_verilog_result =                                          // NOLINT
-            lorina::read_verilog(fiction_experiments::benchmark_path(benchmark),  // NOLINT
-                                 mockturtle::verilog_reader(aig));                // NOLINT
-        assert(read_verilog_result == lorina::return_code::success);
+        std::ostringstream                        os{};
+        fiction::network_reader<fiction::aig_ptr> reader{fiction_experiments::benchmark_path(benchmark), os};
+        const auto                                nets    = reader.get_networks();
+        const auto                                aig =*nets.front();
 
         // compute depth
         const mockturtle::depth_view depth_aig{aig};
@@ -105,9 +103,14 @@ int main()  // NOLINT
         const auto mapped_network = mockturtle::map(cut_aig, gate_lib, map_params);
         // compute depth
         const mockturtle::depth_view depth_mapped_network{mapped_network};
+        //const auto mapped_network = mockturtle::map(cut_aig, gate_lib, map_params);
+        mockturtle::write_dot(mapped_network, "mux21.dot");
 
         // perform layout generation with an SMT-based exact algorithm
         const auto gate_level_layout = fiction::orthogonal<gate_lyt>(mapped_network, {}, &orthogonal_stats);
+        std::ofstream fout("mux21.txt");
+
+        print_gate_level_layout(fout, gate_level_layout, false, false);
 
         // compute critical path and throughput
         fiction::critical_path_length_and_throughput_stats cp_tp_stats{};

@@ -1,12 +1,11 @@
-module top(in0, in1, in2, out);
-input in0, in1, in2;
-output out;
+// Benchmark "top" written by ABC on Mon Oct 16 12:28:33 2023
 
-wire w1, w2, w3;
-
-assign w1 = ~in2;
-assign w2 = in0 & w1;
-assign w3 = in1 & in2;
-assign out = w2 | w3;
-
+module top (
+    pi0, pi1,
+    po0, po1  );
+  input  pi0, pi1;
+  output po0, po1;
+  assign new = pi0 & pi1;
+  assign po0 = new;
+  assign po1 = new;
 endmodule
