@@ -823,3 +823,39 @@ TEST_CASE("substitute PO signals", "[technology-network]")
     CHECK(tec.fanout_size(i) == 2);
     CHECK(tec.fanout_size(b) == 1);
 }
+
+TEST_CASE("substitute PO signals corner case", "[technology-network]")
+{
+    technology_network tec{};
+
+    const auto x1 = tec.create_pi();
+    const auto x2 = tec.create_pi();
+
+    const auto a = tec.create_and(x1, x2);
+
+    tec.create_po(a);
+    tec.create_po(a);
+
+    CHECK(tec.size() == 5);
+    CHECK(tec.is_po(a));
+    CHECK(tec.fanout_size(a) == 2);
+
+    tec.substitute_po_signals();
+
+    CHECK(tec.size() == 7);
+    CHECK(!tec.is_po(a));
+    CHECK(tec.fanout_size(a) == 2);
+
+    std::vector<uint64_t> nodes{};
+    tec.foreach_node(
+        [&](const auto& node)
+        {
+            nodes.push_back(node);
+        });
+
+    tec.foreach_po(
+        [&](const auto& gate)
+        {
+            CHECK(std::find(nodes.begin(), nodes.end(), tec.get_node(gate)) != nodes.end());
+        });
+}
