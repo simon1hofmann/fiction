@@ -82,6 +82,7 @@ void check_ortho_equiv_all()
     check_ortho_equiv<Lyt>(blueprints::fanout_substitution_corner_case_network<technology_network>());
     check_ortho_equiv<Lyt>(blueprints::nary_operation_network<technology_network>());
     check_ortho_equiv<Lyt>(blueprints::clpl<technology_network>());
+    check_ortho_equiv<Lyt>(blueprints::corner_case_network<technology_network>());
 
     // constant input network
     check_ortho_equiv<Lyt>(blueprints::unbalanced_and_inv_network<mockturtle::mig_network>());
