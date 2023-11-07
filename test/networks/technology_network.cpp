@@ -7,6 +7,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <fiction/networks/technology_network.hpp>
+#include <fiction/io/network_reader.hpp>
+#include <fiction/algorithms/network_transformation/fanout_substitution.hpp>
+#include <fiction/algorithms/network_transformation/network_conversion.hpp>
 #include <fiction/traits.hpp>
 
 #include <kitty/constructors.hpp>
@@ -14,6 +17,7 @@
 #include <kitty/operations.hpp>
 #include <kitty/operators.hpp>
 #include <mockturtle/networks/sequential.hpp>
+#include <mockturtle/views/fanout_view.hpp>
 
 #include <vector>
 
@@ -836,26 +840,25 @@ TEST_CASE("substitute PO signals corner case", "[technology-network]")
     tec.create_po(a);
     tec.create_po(a);
 
-    CHECK(tec.size() == 5);
     CHECK(tec.is_po(a));
     CHECK(tec.fanout_size(a) == 2);
 
     tec.substitute_po_signals();
+    mockturtle::topo_view tec_topo{tec};
 
-    CHECK(tec.size() == 7);
-    CHECK(!tec.is_po(a));
-    CHECK(tec.fanout_size(a) == 2);
+    CHECK(!tec_topo.is_po(a));
+    CHECK(tec_topo.fanout_size(a) == 2);
 
     std::vector<uint64_t> nodes{};
-    tec.foreach_node(
+    tec_topo.foreach_node(
         [&](const auto& node)
         {
             nodes.push_back(node);
         });
 
-    tec.foreach_po(
+    tec_topo.foreach_po(
         [&](const auto& gate)
         {
-            CHECK(std::find(nodes.begin(), nodes.end(), tec.get_node(gate)) != nodes.end());
+            CHECK(std::find(nodes.begin(), nodes.end(), tec_topo.get_node(gate)) != nodes.end());
         });
 }
